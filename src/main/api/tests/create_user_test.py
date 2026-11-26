@@ -18,8 +18,10 @@ class TestCreateUser:
 
         response = api_manager.admin_steps.create_user(create_user_request)
 
-        assert create_user_request.username == response.username
-        assert create_user_request.role == response.role
+        assert create_user_request.username == response.username, \
+            f"Имя пользователя {create_user_request.username} не совпадает с именем пользователя {response.username} в ответе"
+        assert create_user_request.role == response.role, \
+            f"Роль пользователя {create_user_request} не совпадает отправленной ролью {response.role}"
 
         user_from_db = User.get_user_by_username(db_session, create_user_request.username) # идем в метод который принимает дб сессию,
         assert user_from_db.username == create_user_request.username, 'Созданного пользователя нет в БД' # сравниваем запись в таблице с имнем отправленым в запросе

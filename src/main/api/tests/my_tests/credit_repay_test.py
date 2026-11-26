@@ -25,8 +25,10 @@ class TestCreditRepay:
 
         credit_repay_response = api_manager.user_steps.credit_repay(user, credit_repay_request)
 
-        assert credit_repay_response.creditId == credit_repay_request.creditId
-        assert credit_repay_response.amountDeposited == credit_repay_request.amount
+        assert credit_repay_response.creditId == credit_repay_request.creditId, \
+            f"ID кредита {credit_repay_response.creditId} в ответе не совпадает с ID {credit_repay_request.creditId} из запроса"
+        assert credit_repay_response.amountDeposited == credit_repay_request.amount, \
+            f"Зачисленная сумма {credit_repay_response.amountDeposited} не совпадает с суммой погашения {credit_repay_request.amount}"
 
         credit_history_response = api_manager.user_steps.get_credit_history_raw(user, account.id)
 
@@ -59,7 +61,8 @@ class TestCreditRepay:
         response = api_manager.user_steps.credit_repay_invalid(user, second_repay_request)
 
         # Проверяем отказ
-        assert response.status_code in [404, 422]
+        assert response.status_code in [404, 422], \
+            f"Ожидали 404 (кредит не найден) или 422 (сумма превышает остаток долга), но получили {response.status_code}"
 
         # проверки бд
         account_from_db = AccountCrudDb.get_account_by_id(db_session, account.id)

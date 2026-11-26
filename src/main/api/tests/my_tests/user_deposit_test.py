@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy.orm import Session
 
 from src.main.api.classes.api_manager import ApiManager
-from src.main.api.models.create_user_request import CreateUserRequest
 from src.main.api.models.account_deposit_request import AccountDepositRequest
 from src.main.api.db.crud.account_crud import AccountCrudDb
+from src.main.api.utils.helpers import calculate_expected_balance
 
 
 class TestUserDeposit:
@@ -16,18 +16,24 @@ class TestUserDeposit:
     ):
         user, account, request = deposit_request
 
-        initial_balance = account.balance
-
         deposit_response = api_manager.user_steps.user_deposit(
             user,
             request
         )
 
-        assert deposit_response.balance == initial_balance + request.amount
-        assert deposit_response.id == request.accountId
+        expected_balance = calculate_expected_balance(
+            account.balance,
+            request.amount,
+            is_debit=False
+        )
+
+        assert deposit_response.balance == expected_balance, \
+            f"Баланс после депозита {deposit_response.balance} не увеличился на сумму пополнения {request.amount}"
+        assert deposit_response.id == request.accountId, \
+            f"ID счёта в ответе {deposit_response.id} не совпадает с ID из запроса {request.accountId}"
 
         account_from_db = AccountCrudDb.get_account_by_id(db_session, account.id)
-        assert account_from_db.balance == initial_balance + request.amount, \
+        assert account_from_db.balance == account.balance + request.amount, \
             "Баланс счёта в БД не совпадает с API после депозита"
 
 
@@ -41,8 +47,6 @@ class TestUserDeposit:
     ):
         user, account = created_account
 
-        initial_balance = account.balance
-
         invalid_request = AccountDepositRequest(
             accountId=account.id,
             amount=amount
@@ -50,8 +54,10 @@ class TestUserDeposit:
 
         response = api_manager.user_steps.user_deposit_invalid(user, invalid_request)
 
-        assert response.json().get("error") == "Amount must be between 1000 and 9000"
-        assert initial_balance == 0
+        assert response.json().get("error") == "Amount must be between 1000 and 9000", \
+            "Текст ошибки не совпадает с текстом ошибки из swagger"
+        assert account.balance == 0, \
+            f"Начальный баланс {account.balance} счета изменился после невалидного запроса на пополнение"
 
         account_from_db = AccountCrudDb.get_account_by_id(db_session, account.id)
-        assert account_from_db.balance == initial_balance, "Баланс счета в БД не равен 0"
+        assert account_from_db.balance == account.balance, "Баланс счета в БД не равен 0"

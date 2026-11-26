@@ -16,7 +16,8 @@ class TestCreateAccount:
     ):
         response = api_manager.user_steps.create_account(create_user_request)
 
-        assert response.balance == 0
+        assert response.balance == 0, \
+            f"Баланс {response.balance} созданного счета не равен 0"
 
         account_from_db = Account.get_account_by_id(db_session, response.id)
         assert account_from_db.id == response.id, 'Аккаунт не создан, id аккаунта нет в бд'

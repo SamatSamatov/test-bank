@@ -7,11 +7,10 @@ from src.main.api.models.create_user_request import CreateUserRequest
 from src.main.api.models.create_user_request import CreateUserRequestCredit
 from src.main.api.models.credit_repay_request import CreditRepayRequest
 from src.main.api.models.credit_user_request import CreditUserRequest
-from src.main.api.tests.constants import DEPOSIT_AMOUNT, FIRST_ACCOUNT_BALANCE, SECOND_ACCOUNT_BALANCE
+from src.main.api.tests.constants import FIRST_ACCOUNT_BALANCE, SECOND_ACCOUNT_BALANCE
 
 
 # формирует запрос на создание польхователя, получать пользователя и отдавать данные
-
 @pytest.fixture
 def create_user_request(api_manager) -> CreateUserRequest:
     user_request = RandomModelGenerator.generate(CreateUserRequest)
@@ -58,14 +57,15 @@ def accounts_for_transfer(api_manager, create_user_request) -> tuple[CreateUserR
     return user, first_account, second_account
 
 @pytest.fixture
-def account_for_credit_repay(api_manager, create_user_request_role_credit) -> tuple[CreateUserRequest, CreateAccountResponse, CreateAccountResponse]:
+def account_for_credit_repay(api_manager, create_user_request_role_credit) -> tuple[CreateUserRequest, CreateAccountResponse, CreditUserResponse]:
     user = create_user_request_role_credit
     account = api_manager.user_steps.create_account(user)
-    credit_request = CreditUserRequest(
-        accountId= account.id,
-        amount= 5000,
-        termMonths= 12,
+
+    credit_request = RandomModelGenerator.generate(
+        CreditUserRequest,
+        accountId=account.id
     )
+
     credit_response = api_manager.user_steps.user_credit(user, credit_request)
     return user, account, credit_response
 
@@ -102,12 +102,12 @@ def paid_credit_account(api_manager, create_user_request_role_credit) -> tuple[C
 
     return user, account, credit_response, balance_after_repay
 
-# Готовый запрос на депозит с балансом 1000.5
+
 @pytest.fixture
 def deposit_request(created_account) -> tuple[CreateUserRequest, CreateAccountResponse, AccountDepositRequest]:
     create_user_request, account = created_account
-    request = AccountDepositRequest(
-        accountId=account.id,
-        amount= DEPOSIT_AMOUNT
+    request = RandomModelGenerator.generate(
+        AccountDepositRequest,
+        accountId=account.id
     )
     return create_user_request, account, request
